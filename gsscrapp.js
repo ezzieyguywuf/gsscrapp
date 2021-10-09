@@ -2,6 +2,24 @@ import https from 'https';
 import fs from 'fs';
 
 const HOST = `maps.googleapis.com`
+const BLACKLIST = [
+    "target",
+    "walmart",
+    "barnes and noble",
+    "barnes & noble",
+    "escape",
+    "amazon",
+    "schuler books",
+    "powell's books",
+    "k-mart",
+    "joseph-beth booksellers",
+    "the hudson news",
+    "airport",
+    "hastings",
+    "half-price books",
+    "deseret books",
+    "books-a-million"
+]
 
 function processArgs() {
     const args = process.argv;
@@ -79,15 +97,81 @@ async function getPlaces(searchString, key, nextPage = undefined) {
     }); 
 };
 
+function getPlaceDetails(placeID, key) {
+    const endpoint = `/maps/api/place/details/json`;
+    const free_fields = ["address_component", "business_status"];
+    // const paid_fields = ["website", "formatted_phone_number"]
+    const paid_fields = []
+    const fields = free_fields.concat(paid_fields).join("%2C");
+    const path = `${endpoint}?place_id=${placeID}&fields=${fields}&key=${key}`;
+    const options = {hostname: HOST, path: path, method: "GET"}
+
+    console.log(`path = ${path}`)
+    return wrapRequest(options, (data, resolve) => resolve(JSON.parse(data).result)); 
+};
+
+function getAddress(components) {
+    let out = {};
+
+    components.forEach(({long_name, short_name, types}) => {
+        if (types.includes("street_number")) {
+            out.street_number = long_name;
+        } 
+        else if(types.includes("route")) {
+            out.street_name = short_name;
+        }
+        else if(types.includes("locality")) {
+            out.city = long_name;
+        }
+        else if(types.includes("administrative_area_level_1")) {
+            out.state = short_name;
+        }
+        else if(types.includes("administrative_area_level_2")) {
+            out.county = long_name;
+        }
+        else if(types.includes("postal_code")) {
+            out.zip_code = long_name;
+        }
+    })
+
+    return {
+        street: `${out.street_number} ${out.street_name}`,
+        city: out.city,
+        state: out.state,
+        zip: out.zip,
+        county: out.county
+    }
+}
+
 const key = processArgs();
 
-const data = await getPlaces("Board Game Stores in Raleigh, North Carolina", key);
-console.log(`here's the data I got`)
+// const data = await getPlaces("Board Game Stores in Raleigh, North Carolina", key);
+// console.log(`here's the data I got`)
 // console.log(data)
-console.log(`writing to nc_data.json`);
+// console.log(`writing to nc_data.json`);
 
-fs.writeFileSync("./nc_data.json", JSON.stringify(data, null, 4), 'utf8');
+// fs.writeFileSync("./nc_data.json", JSON.stringify(data, null, 4), 'utf8');
 
-// const data = JSON.parse(fs.readFileSync('./nc_data.json', 'utf8'));
+const data = JSON.parse(fs.readFileSync('./nc_data.json', 'utf8'));
+
+const cleanData = data.filter(({name}) => {
+    for (const check of BLACKLIST) {
+        if (name.toLowerCase().includes(check)) {
+            return false;
+        }
+    }
+
+    return true;
+});
+
+// const data = JSON.parse(fs.readFileSync('./nc_data_short.json', 'utf8'));
 
 console.log(`got ${data.length} results`)
+
+const fullData = await Promise.all(cleanData.map(async (place) => {
+    const {address_components, ...newData} = await getPlaceDetails(place.place_id, key);
+    const address = getAddress(address_components);
+    return {...place, ...address, ...newData};
+}));
+
+console.log(`final data ${JSON.stringify(fullData, null, 4)}`)
