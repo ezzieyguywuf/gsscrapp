@@ -1,5 +1,5 @@
 import sys
-import urllib.request
+import requests
 from bs4 import BeautifulSoup
 import re
 
@@ -8,10 +8,9 @@ def getLinks(url):
     Will scrape the given url, and return any social media links within
     """
     print("Fetching content from " + url)
-    response = urllib.request.urlopen(url)
+    response = requests.get(url)
     print("...done fetching, parsing now...")
-    with response as f:
-        soup = BeautifulSoup(f, 'html.parser')
+    soup = BeautifulSoup(response.content, 'html.parser')
         
     facebookLinks = []
     for link in soup.find_all(href=re.compile("facebook")):
