@@ -100,13 +100,12 @@ async function getPlaces(searchString, key, nextPage = undefined) {
 function getPlaceDetails(placeID, key) {
     const endpoint = `/maps/api/place/details/json`;
     const free_fields = ["address_component", "business_status"];
-    // const paid_fields = ["website", "formatted_phone_number"]
-    const paid_fields = []
+    const paid_fields = ["website", "formatted_phone_number"]
+    // const paid_fields = []
     const fields = free_fields.concat(paid_fields).join("%2C");
     const path = `${endpoint}?place_id=${placeID}&fields=${fields}&key=${key}`;
     const options = {hostname: HOST, path: path, method: "GET"}
 
-    console.log(`path = ${path}`)
     return wrapRequest(options, (data, resolve) => resolve(JSON.parse(data).result)); 
 };
 
@@ -148,9 +147,8 @@ const key = processArgs();
 // const data = await getPlaces("Board Game Stores in Raleigh, North Carolina", key);
 // console.log(`here's the data I got`)
 // console.log(data)
-// console.log(`writing to nc_data.json`);
-
-// fs.writeFileSync("./nc_data.json", JSON.stringify(data, null, 4), 'utf8');
+// console.log(`writing to nc_data_final.json`);
+// fs.writeFileSync("./nc_data_final.json", JSON.stringify(fullData, null, 4), 'utf8');
 
 const data = JSON.parse(fs.readFileSync('./nc_data.json', 'utf8'));
 
@@ -174,4 +172,7 @@ const fullData = await Promise.all(cleanData.map(async (place) => {
     return {...place, ...address, ...newData};
 }));
 
-console.log(`final data ${JSON.stringify(fullData, null, 4)}`)
+console.log(`final (filtered) data  = ${fullData.length} results`)
+
+console.log(`writing to nc_data_final.json`);
+fs.writeFileSync("./nc_data_final.json", JSON.stringify(fullData, null, 4), 'utf8');
