@@ -2,37 +2,6 @@ import https from 'https';
 import fs from 'fs';
 
 const HOST = `maps.googleapis.com`
-const BLACKLIST = [
-    "target",
-    "walmart",
-    "barnes and noble",
-    "barnes & noble",
-    "escape",
-    "amazon",
-    "schuler books",
-    "powell's books",
-    "k-mart",
-    "joseph-beth booksellers",
-    "the hudson news",
-    "airport",
-    "hastings",
-    "half-price books",
-    "deseret books",
-    "books-a-million"
-]
-
-function processArgs() {
-    const args = process.argv;
-
-    if (args.length <= 2) {
-        console.log(`Please pass your google API as parameter to the program.`);
-        console.log(`e.g. "node gsscrapp.js THIS_IS_MY_GOOGLE_API_KEY"`);
-        process.exit(1);
-    }
-    else {
-        return args[2];
-    }
-}
 
 function wrapRequest(options, fn) {
     return new Promise((resolve, reject) => {
@@ -70,7 +39,7 @@ function parseResults(results) {
     });
 }
 
-async function getPlaces(searchString, key, nextPage = undefined) {
+export async function getPlaces(searchString, key, nextPage = undefined) {
     const endpoint = `/maps/api/place/textsearch/json`;
     const query = searchString.split(" ").join("%20");
     const path = `${endpoint}?query=${query}&key=${key}` +
@@ -97,7 +66,7 @@ async function getPlaces(searchString, key, nextPage = undefined) {
     }); 
 };
 
-function getPlaceDetails(placeID, key) {
+export function getPlaceDetails(placeID, key) {
     const endpoint = `/maps/api/place/details/json`;
     const free_fields = ["address_component", "business_status"];
     const paid_fields = ["website", "formatted_phone_number"]
@@ -109,7 +78,9 @@ function getPlaceDetails(placeID, key) {
     return wrapRequest(options, (data, resolve) => resolve(JSON.parse(data).result)); 
 };
 
-function getAddress(components) {
+// This will take a list of "address_components" from the google API response
+// and turn it into a more traditional us-style address
+export function getAddress(components) {
     let out = {};
 
     components.forEach(({long_name, short_name, types}) => {
@@ -141,38 +112,3 @@ function getAddress(components) {
         county: out.county
     }
 }
-
-const key = processArgs();
-
-// const data = await getPlaces("Board Game Stores in Raleigh, North Carolina", key);
-// console.log(`here's the data I got`)
-// console.log(data)
-// console.log(`writing to nc_data_final.json`);
-// fs.writeFileSync("./nc_data_final.json", JSON.stringify(fullData, null, 4), 'utf8');
-
-const data = JSON.parse(fs.readFileSync('./nc_data.json', 'utf8'));
-
-const cleanData = data.filter(({name}) => {
-    for (const check of BLACKLIST) {
-        if (name.toLowerCase().includes(check)) {
-            return false;
-        }
-    }
-
-    return true;
-});
-
-// const data = JSON.parse(fs.readFileSync('./nc_data_short.json', 'utf8'));
-
-console.log(`got ${data.length} results`)
-
-const fullData = await Promise.all(cleanData.map(async (place) => {
-    const {address_components, ...newData} = await getPlaceDetails(place.place_id, key);
-    const address = getAddress(address_components);
-    return {...place, ...address, ...newData};
-}));
-
-console.log(`final (filtered) data  = ${fullData.length} results`)
-
-console.log(`writing to nc_data_final.json`);
-fs.writeFileSync("./nc_data_final.json", JSON.stringify(fullData, null, 4), 'utf8');
