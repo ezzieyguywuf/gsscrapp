@@ -37,7 +37,7 @@ const BLACKLIST = [
     "gamecrazy",
     "rainbow computing",
     "rhino video games",
-    "gamestop",
+    "game stop",
     "slackers cds and games"
 ]
 
