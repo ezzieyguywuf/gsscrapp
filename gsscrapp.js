@@ -1,5 +1,4 @@
 import https from 'https';
-import fs from 'fs';
 
 const HOST = `maps.googleapis.com`
 
@@ -46,7 +45,7 @@ export async function getPlaces(searchString, key, nextPage = undefined) {
         (nextPage === undefined ? '' : `&pagetoken=${nextPage}`);
     const options = {hostname: HOST, path: path, method: "GET"}
 
-    console.log(`path = ${path}`)
+    // console.log(`path = ${path}`)
     return wrapRequest(options, async (data, resolve) => {
         const {next_page_token, results} = JSON.parse(data);
         const parsedResults = parseResults(results);
@@ -55,9 +54,9 @@ export async function getPlaces(searchString, key, nextPage = undefined) {
             // the google api docs say that there's a 'slight delay'
             // before the next_page_token is valid (they don't say
             // how long the delay is...)
-            console.log("sleeping...");
+            // console.log("sleeping...");
             await new Promise((resolve) => setTimeout(resolve, 3000));
-            console.log("    recursing...");
+            // console.log("    recursing...");
             const moreResults = await getPlaces(searchString, key, next_page_token);
             resolve(parsedResults.concat(parseResults(moreResults)));
         }
