@@ -70,7 +70,6 @@ export function getPlaceDetails(placeID, key) {
     const endpoint = `/maps/api/place/details/json`;
     const free_fields = ["address_component", "business_status"];
     const paid_fields = ["website", "formatted_phone_number"]
-    // const paid_fields = []
     const fields = free_fields.concat(paid_fields).join("%2C");
     const path = `${endpoint}?place_id=${placeID}&fields=${fields}&key=${key}`;
     const options = {hostname: HOST, path: path, method: "GET"}
@@ -108,7 +107,7 @@ export function getAddress(components) {
         street: `${out.street_number} ${out.street_name}`,
         city: out.city,
         state: out.state,
-        zip: out.zip,
+        zip: out.zip_code,
         county: out.county
     }
 }
