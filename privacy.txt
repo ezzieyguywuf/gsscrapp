@@ -1,0 +1,2 @@
+This app will collect the number of likes that your Facebook Page has. This data
+will be used in a database of similar pages.
